@@ -55,57 +55,56 @@ class Customer
     }
 
     //make array of variable discounts of the groups with recursive function to get data out of tree
-    public function variableDiscountArray($group, $arrayVar = []) : array {
+    public function variableDiscountArray($group, $arrayVar = []): array
+    {
         $arrayVar[] = $group->getVarDiscount();
-        if($group->getGroup() !== null) {
+        if ($group->getGroup() !== null) {
             $arrayVar = $this->variableDiscountArray($group->getGroup(), $arrayVar);
         }
         return $arrayVar;
     }
 
     //make array of fixed discounts of the groups with recursive function to get data out of tree
-    public function fixedDiscountArray($group, $arrayFix = []) {
+    public function fixedDiscountArray($group, $arrayFix = [])
+    {
         $arrayFix[] = $group->getFixDiscount();
-        if($group->getGroup() !== null) {
+        if ($group->getGroup() !== null) {
             $arrayFix = $this->fixedDiscountArray($group->getGroup(), $arrayFix);
         }
         return $arrayFix;
     }
 
     //calculate highest discount of the groups
-    public function calculatePrice(Product $product) : float {
+    public function calculatePrice(Product $product): float
+    {
         $price = $product->getPrice();
         //fixed discounts get added up
-        $fixGroup = array_sum($this->fixedDiscountArray($this->getGroup()))*100;
+        $fixGroup = array_sum($this->fixedDiscountArray($this->getGroup())) * 100;
         //get biggest variable discount
-        $varGroup = (($price/100) * max($this->variableDiscountArray($this->getGroup())));
+        $varGroup = ($price * (max($this->variableDiscountArray($this->getGroup()))/100));
         //check if fixed discount or variable discount of the group is bigger
         $varGroup > $fixGroup ? $resultGroupVar = $varGroup : $resultGroupFix = $fixGroup;
         //compare the result with the customer discount
-        $varCustomer = ($price/100) * $this->getVarDiscount();
-        $fixCustomer = $this->getFixDiscount()*100;
+        $varCustomer = $price * ($this->getVarDiscount()/100);
+        $fixCustomer = $this->getFixDiscount() * 100;
         if (isset($resultGroupFix)) {
-            if ($fixCustomer !== null) {
+            if ($fixCustomer !== 0) {
                 $price = $price - $resultGroupFix - $fixCustomer;
-            } elseif ($resultGroupFix > $varCustomer) {
-                $price -= $resultGroupFix;
             } else {
-                $price -= $varCustomer;
+                $price = ($price - $resultGroupFix) * ($this->getVarDiscount()/100);
             }
         } elseif (isset($resultGroupVar)) {
-            if ($varCustomer !== null) {
-                $price -= max($resultGroupVar, $varCustomer);
-            } elseif ($fixCustomer > $resultGroupVar) {
-                $price -= $fixCustomer;
+            if ($fixCustomer !== 0) {
+                $price = ($price - $fixCustomer) * ($this->getFixDiscount()/100);
             } else {
-                $price -= $resultGroupVar;
+                $price -= max($resultGroupVar, $varCustomer);
             }
-        }
-        //price with 2 decimals
-        $price = round($price/100, 2);
-        //price cannot be lower than 0
-        if ($price < 0) {
-            $price = 0;
+            //price with 2 decimals
+            $price = round($price / 100, 2);
+            //price cannot be lower than 0
+            if ($price < 0) {
+                $price = 0;
+            }
         }
         return $price;
     }
